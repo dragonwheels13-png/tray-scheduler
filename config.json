@@ -1,0 +1,43 @@
+{
+  "schedule": {
+    "startTime": "18:00",
+    "endTime": "23:00",
+    "intervalMinutes": 10
+  },
+  "lightShows": [
+    {
+      "id": "ls-1",
+      "name": "Heartbeat Check",
+      "enabled": true,
+      "schedule": "*/5 * * * *",
+      "request": {
+        "method": "GET",
+        "url": "https://your-server.com/api/health",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY_HERE",
+          "Content-Type": "application/json"
+        },
+        "body": null
+      }
+    },
+    {
+      "id": "ls-2",
+      "name": "Evening Show",
+      "enabled": false,
+      "schedule": "0 20 * * *",
+      "request": {
+        "method": "POST",
+        "url": "https://your-server.com/api/show/start",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_KEY_HERE",
+          "Content-Type": "application/json",
+          "X-Custom-Header": "value"
+        },
+        "body": {
+          "show": "evening",
+          "source": "scheduler"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TrayScheduler — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f0f1a;
+      --surface:   #16213e;
+      --border:    #1e2d50;
+      --accent:    #4cc9f0;
+      --accent2:   #7c3aed;
+      --green:     #4ade80;
+      --red:       #f87171;
+      --orange:    #fb923c;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --radius:    8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-size: 13px;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    header h1 { font-size: 16px; font-weight: 700; color: #fff; }
+    .status-pill {
+      margin-left: auto;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .04em;
+    }
+    .status-pill.running  { background: #1a3a1a; color: var(--green); border: 1px solid #2a5a2a; }
+    .status-pill.idle     { background: #1e1e2e; color: var(--muted); border: 1px solid var(--border); }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      transition: all .15s;
+      user-select: none;
+    }
+    .tab:hover   { color: var(--text); }
+    .tab.active  { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── Panels ── */
+    .panel { display: none; flex: 1; overflow-y: auto; padding: 20px; }
+    .panel.active { display: block; }
+
+    /* ── Schedule Panel ── */
+    .schedule-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .field-group {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .field-group.full { grid-column: 1 / -1; }
+
+    .field-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 8px;
+    }
+
+    input[type="time"],
+    input[type="number"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 600;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input[type="time"]:focus,
+    input[type="number"]:focus { border-color: var(--accent); }
+    input[type="number"] { font-size: 18px; }
+
+    .field-hint {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Queue preview ── */
+    .queue-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .queue-box h3 {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 12px;
+    }
+    .queue-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .queue-chip {
+      background: #1a2744;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .queue-chip .chip-num {
+      background: var(--accent);
+      color: #000;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      font-size: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .queue-empty { color: var(--muted); font-size: 12px; font-style: italic; }
+
+    /* ── Buttons ── */
+    .btn-row { display: flex; gap: 10px; margin-top: 6px; }
+
+    button {
+      padding: 9px 18px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    button:hover  { opacity: .88; }
+    button:active { transform: scale(.97); }
+
+    .btn-save    { background: var(--accent);  color: #000; }
+    .btn-start   { background: var(--green);   color: #000; }
+    .btn-stop    { background: var(--red);     color: #000; }
+    .btn-run     { background: var(--accent);  color: #000; }
+    .btn-reload  { background: var(--accent2); color: #fff; }
+    .btn-config  { background: transparent;    color: var(--muted); border: 1px solid var(--border); }
+
+    /* ── Light Shows Panel ── */
+    .ls-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .ls-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .ls-dot.on  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .ls-dot.off { background: var(--muted); }
+
+    .ls-info { flex: 1; min-width: 0; }
+    .ls-name { font-weight: 600; margin-bottom: 3px; }
+    .ls-meta { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ls-stat { font-size: 11px; margin-left: auto; text-align: right; color: var(--muted); flex-shrink: 0; }
+    .ls-stat .ok  { color: var(--green); }
+    .ls-stat .err { color: var(--red); }
+
+    /* ── Log Panel ── */
+    #log-output {
+      background: #080810;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 11px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      word-break: break-all;
+      min-height: 320px;
+      color: #7cfc98;
+    }
+    .log-toolbar { display: flex; gap: 8px; margin-bottom: 10px; }
+
+    /* ── Footer ── */
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 6px 20px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div style="font-size:20px">💡</div>
+  <h1>TrayScheduler</h1>
+  <div id="status-pill" class="status-pill idle">⚫ Idle</div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('schedule')">Schedule</div>
+  <div class="tab"        onclick="switchTab('lightshows')">Light Shows</div>
+  <div class="tab"        onclick="switchTab('logs')">Logs</div>
+</div>
+
+<!-- ── SCHEDULE PANEL ─────────────────────────────────── -->
+<div class="panel active" id="panel-schedule">
+
+  <div class="schedule-grid">
+    <div class="field-group">
+      <div class="field-label">Start Time</div>
+      <input type="time" id="inp-start" value="18:00" />
+      <div class="field-hint">Sequence begins at this time daily</div>
+    </div>
+
+    <div class="field-group">
+      <div class="field-label">End Time</div>
+      <input type="time" id="inp-end" value="23:00" />
+      <div class="field-hint">All shows stop at this time</div>
+    </div>
+
+    <div class="field-group full">
+      <div class="field-label">Interval Between Shows (minutes)</div>
+      <input type="number" id="inp-interval" value="10" min="1" max="480" />
+      <div class="field-hint">
+        Each enabled light show plays once per cycle before the order re-randomizes.
+        The next show fires every N minutes.
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row" style="margin-bottom:20px;">
+    <button class="btn-save" onclick="saveSchedule()">💾 Save Schedule</button>
+    <button class="btn-start" id="btn-start-stop" onclick="toggleStartStop()">▶ Start Now</button>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- Live queue preview -->
+  <div class="queue-box">
+    <h3>Current Queue  <span id="queue-meta" style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--muted);"></span></h3>
+    <div class="queue-list" id="queue-list">
+      <span class="queue-empty">Not running — queue will build at start time.</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── LIGHT SHOWS PANEL ──────────────────────────────── -->
+<div class="panel" id="panel-lightshows">
+  <div id="lightshows-container">Loading...</div>
+  <hr class="divider" />
+  <div class="btn-row">
+    <button class="btn-reload" onclick="reloadConfig()">↺ Reload Light Shows</button>
+    <button class="btn-config" onclick="openConfig()">✎ Edit config.json</button>
+  </div>
+</div>
+
+<!-- ── LOGS PANEL ─────────────────────────────────────── -->
+<div class="panel" id="panel-logs">
+  <div class="log-toolbar">
+    <button class="btn-reload" onclick="refreshLogs()">↺ Refresh</button>
+    <button class="btn-config" onclick="openLogFile()">↗ Open in editor</button>
+  </div>
+  <div id="log-output">Loading log...</div>
+</div>
+
+<footer id="footer-status">Ready</footer>
+
+<script>
+const { ipcRenderer, shell } = require('electron');
+const fs   = require('fs');
+const path = require('path');
+
+const CONFIG_PATH = path.join(__dirname, '..', 'config.json');
+const LOG_PATH    = path.join(__dirname, '..', 'logs', 'scheduler.log');
+
+let currentState = null;
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['schedule','lightshows','logs'][i] === name);
+  });
+  document.querySelectorAll('.panel').forEach(p => {
+    p.classList.toggle('active', p.id === `panel-${name}`);
+  });
+  if (name === 'logs')       refreshLogs();
+  if (name === 'lightshows') loadLightShows();
+}
+
+// ── Receive scheduler state from main ────────────────────────────────────────
+ipcRenderer.on('scheduler-state', (_, state) => applyState(state));
+ipcRenderer.on('lightshow-complete', (_, { lightShow, status }) => {
+  setFooter(`"${lightShow.name}" finished: ${status}`);
+  loadLightShows();
+});
+
+function applyState(state) {
+  currentState = state;
+
+  // Status pill
+  const pill = document.getElementById('status-pill');
+  if (state.isRunning) {
+    pill.className = 'status-pill running';
+    pill.textContent = `🟠 Running — every ${state.intervalMinutes} min`;
+  } else {
+    pill.className = 'status-pill idle';
+    pill.textContent = `⚫ Idle — starts ${state.startTime}`;
+  }
+
+  // Start/stop button
+  const btn = document.getElementById('btn-start-stop');
+  if (state.isRunning) {
+    btn.textContent = '⏹ Stop Now';
+    btn.className   = 'btn-stop';
+  } else {
+    btn.textContent = '▶ Start Now';
+    btn.className   = 'btn-start';
+  }
+
+  // Time inputs (only update if not focused)
+  if (document.activeElement !== document.getElementById('inp-start'))
+    document.getElementById('inp-start').value = state.startTime;
+  if (document.activeElement !== document.getElementById('inp-end'))
+    document.getElementById('inp-end').value = state.endTime;
+  if (document.activeElement !== document.getElementById('inp-interval'))
+    document.getElementById('inp-interval').value = state.intervalMinutes;
+
+  // Queue display
+  const ql   = document.getElementById('queue-list');
+  const meta = document.getElementById('queue-meta');
+  if (state.isRunning && state.queueOrder.length > 0) {
+    meta.textContent = `${state.queueRemaining} remaining this cycle`;
+    ql.innerHTML = state.queueOrder.map((name, i) => `
+      <div class="queue-chip">
+        <span class="chip-num">${i + 1}</span>
+        ${escHtml(name)}
+      </div>
+    `).join('');
+  } else if (state.isRunning && state.queueOrder.length === 0) {
+    meta.textContent = 'reshuffling...';
+    ql.innerHTML = '<span class="queue-empty">Queue reshuffling after last show...</span>';
+  } else {
+    meta.textContent = '';
+    ql.innerHTML = '<span class="queue-empty">Not running — queue builds at start time.</span>';
+  }
+}
+
+// ── Schedule controls ─────────────────────────────────────────────────────────
+function saveSchedule() {
+  const startTime       = document.getElementById('inp-start').value;
+  const endTime         = document.getElementById('inp-end').value;
+  const intervalMinutes = parseInt(document.getElementById('inp-interval').value, 10);
+
+  if (!startTime || !endTime || isNaN(intervalMinutes) || intervalMinutes < 1) {
+    setFooter('⚠ Please fill in all fields correctly.');
+    return;
+  }
+
+  ipcRenderer.send('save-schedule', { startTime, endTime, intervalMinutes });
+  setFooter(`Schedule saved: ${startTime} → ${endTime}, every ${intervalMinutes} min`);
+}
+
+function toggleStartStop() {
+  if (currentState?.isRunning) {
+    ipcRenderer.send('stop-now');
+    setFooter('Stopping...');
+  } else {
+    ipcRenderer.send('start-now');
+    setFooter('Starting sequence...');
+  }
+}
+
+// ── Light Shows panel ─────────────────────────────────────────────────────────
+function loadLightShows() {
+  try {
+    const config     = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+    const lightShows = config.lightShows || [];
+    const container  = document.getElementById('lightshows-container');
+    const stats      = currentState?.stats || {};
+
+    if (!lightShows.length) {
+      container.innerHTML = '<p style="color:var(--muted); margin-top:10px;">No light shows in config.json yet.</p>';
+      return;
+    }
+
+    container.innerHTML = lightShows.map(ls => {
+      const st     = stats[ls.id];
+      const status = st?.lastStatus ?? '';
+      const isOk   = status.startsWith('✅');
+      const isErr  = status.startsWith('❌');
+      return `
+        <div class="ls-card">
+          <div class="ls-dot ${ls.enabled ? 'on' : 'off'}"></div>
+          <div class="ls-info">
+            <div class="ls-name">${escHtml(ls.name)}</div>
+            <div class="ls-meta">${escHtml(ls.request.method)} ${escHtml(ls.request.url)}</div>
+          </div>
+          <div class="ls-stat">
+            ${st ? `<div class="${isOk ? 'ok' : isErr ? 'err' : ''}">${escHtml(status)}</div>
+                    <div>Runs: ${st.runs}</div>` : '<div>Not run yet</div>'}
+          </div>
+          <button class="btn-run" onclick="runNow('${ls.id}')" ${ls.enabled ? '' : 'disabled'} style="margin-left:8px;">▶</button>
+        </div>
+      `;
+    }).join('');
+
+  } catch (e) {
+    document.getElementById('lightshows-container').innerHTML =
+      `<p style="color:var(--red);">Error reading config.json: ${e.message}</p>`;
+  }
+}
+
+function runNow(lsId) {
+  try {
+    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+    const ls = (config.lightShows || []).find(j => j.id === lsId);
+    if (ls) { ipcRenderer.send('run-lightshow-now', ls); setFooter(`Running "${ls.name}"...`); }
+  } catch (e) { setFooter('Error: ' + e.message); }
+}
+
+function reloadConfig() {
+  ipcRenderer.send('reload-config');
+  loadLightShows();
+  setFooter('Light shows reloaded.');
+}
+
+function openConfig() { shell.openPath(CONFIG_PATH); }
+
+// ── Logs panel ────────────────────────────────────────────────────────────────
+function refreshLogs() {
+  try {
+    const text = fs.existsSync(LOG_PATH)
+      ? fs.readFileSync(LOG_PATH, 'utf8').split('\n').slice(-300).join('\n')
+      : '(no log file yet)';
+    const el = document.getElementById('log-output');
+    el.textContent = text;
+    el.scrollTop   = el.scrollHeight;
+  } catch (e) {
+    document.getElementById('log-output').textContent = 'Error: ' + e.message;
+  }
+}
+
+function openLogFile() { shell.openPath(LOG_PATH); }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function setFooter(msg) { document.getElementById('footer-status').textContent = msg; }
+function escHtml(s)     { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+ipcRenderer.send('get-scheduler-state');
+</script>
+
+</body>
+</html>
